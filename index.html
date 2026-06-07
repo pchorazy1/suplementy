@@ -72,16 +72,17 @@
     /* SUPPLEMENT CARDS */
     .sup-list { display: flex; flex-direction: column; gap: 1px; }
     .sup-card {
-      background: var(--card); display: flex; align-items: center; gap: 14px;
+      background: var(--card); display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
       padding: 14px 16px;
     }
     .sup-card:first-child { border-radius: 12px 12px 0 0; }
     .sup-card:last-child { border-radius: 0 0 12px 12px; }
     .sup-card:only-child { border-radius: 12px; }
     .sup-card + .sup-card { border-top: 0.5px solid var(--border); }
-    .sup-name { flex: 1; font-size: 17px; }
+    .sup-name { flex: 1; font-size: 17px; min-width: 150px; }
     .sup-name.empty { color: var(--label); font-style: italic; }
     .sup-time { font-size: 13px; color: var(--label); }
+    .sup-streak { font-size: 12px; color: var(--green); font-weight: 600; }
     .check-circle {
       width: 32px; height: 32px; border-radius: 50%;
       border: 2px solid var(--border); background: none;
@@ -117,6 +118,15 @@
     .orange { color: var(--orange); }
     .blue { color: var(--primary); }
 
+    /* CHART */
+    .chart-wrap { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 10px; }
+    .chart-wrap h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    #trendChart { width: 100%; height: 160px; }
+    .heatmap-wrap { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 10px; }
+    .heatmap-wrap h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    .heatmap-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .heatmap-day { width: 100%; aspect-ratio: 1; border-radius: 4px; background: var(--bg); }
+
     /* SETTINGS */
     .section-header {
       font-size: 13px; font-weight: 600; color: var(--label);
@@ -125,7 +135,7 @@
     }
     .settings-row {
       background: var(--card); display: flex; align-items: center; gap: 12px;
-      padding: 12px 16px; border-top: 0.5px solid var(--border);
+      padding: 12px 16px; border-top: 0.5px solid var(--border); flex-wrap: wrap;
     }
     .settings-row:first-child { border-top: none; border-radius: 12px 12px 0 0; }
     .settings-row:last-child { border-radius: 0 0 12px 12px; }
@@ -133,9 +143,23 @@
     .sup-num { font-size: 15px; color: var(--label); min-width: 22px; }
     .sup-input {
       flex: 1; border: none; background: transparent; font-size: 17px;
-      color: var(--text); font-family: inherit; outline: none;
+      color: var(--text); font-family: inherit; outline: none; min-width: 100px;
     }
     .sup-input::placeholder { color: var(--label); }
+    .time-input {
+      width: 70px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+      background: var(--bg); color: var(--text); font-size: 14px; font-family: monospace;
+    }
+    .notif-toggle {
+      width: 50px; height: 28px; background: var(--green); border: none; border-radius: 14px;
+      cursor: pointer; position: relative; transition: background 0.3s; flex-shrink: 0;
+    }
+    .notif-toggle::after {
+      content: ''; position: absolute; width: 24px; height: 24px;
+      background: white; border-radius: 12px; top: 2px; left: 2px; transition: left 0.3s;
+    }
+    .notif-toggle.off { background: var(--border); }
+    .notif-toggle.off::after { left: 24px; }
 
     /* TAB BAR */
     .tabbar {
@@ -150,21 +174,6 @@
     }
     .tab svg { width: 24px; height: 24px; }
     .tab.active { color: var(--primary); }
-
-    /* MODAL */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: none; align-items: flex-end; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: var(--card); border-radius: 20px 20px 0 0; width: 100%; padding: 8px 16px 0; padding-bottom: calc(var(--safe-bot) + 16px); animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1); }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 14px; }
-    .modal-title { font-size: 17px; font-weight: 600; text-align: center; margin-bottom: 14px; }
-    .modal-field { margin-bottom: 12px; }
-    .modal-field label { font-size: 13px; color: var(--label); margin-bottom: 4px; display: block; }
-    .modal-field input { width: 100%; background: var(--bg); border: none; border-radius: 10px; padding: 12px 14px; font-size: 17px; color: var(--text); outline: none; font-family: inherit; }
-    .modal-actions { display: flex; gap: 10px; }
-    .btn { flex: 1; padding: 14px; border-radius: 12px; border: none; font-size: 17px; font-weight: 600; cursor: pointer; }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-secondary { background: var(--bg); color: var(--primary); }
 
     .empty-stat { text-align: center; color: var(--label); padding: 40px 0; font-size: 15px; }
   </style>
@@ -204,6 +213,14 @@
     <button onclick="changeMonth(1)">›</button>
   </div>
   <div class="summary-box" id="stats-summary"></div>
+  <div class="chart-wrap">
+    <h3>Trend (30 dni)</h3>
+    <canvas id="trendChart"></canvas>
+  </div>
+  <div class="heatmap-wrap">
+    <h3>Heatmapa miesiąca</h3>
+    <div class="heatmap-grid" id="heatmap"></div>
+  </div>
   <div class="section-header">Każdy suplement</div>
   <div id="stats-list"></div>
 </div>
@@ -211,7 +228,14 @@
 <!-- USTAWIENIA -->
 <div id="screen-settings" class="screen">
   <div class="navbar"><h1>⚙️ Ustawienia</h1></div>
-  <div class="section-header">Nazwy suplementów</div>
+  <div class="section-header">Powiadomienia</div>
+  <div style="background:var(--card);border-radius:12px;overflow:hidden;">
+    <div class="settings-row" style="border-top:none;">
+      <div style="flex:1;font-size:15px;">Powiadomienia włączone</div>
+      <button class="notif-toggle" id="notif-toggle" onclick="toggleNotif()" style=""></button>
+    </div>
+  </div>
+  <div class="section-header">Nazwy i godziny suplementów</div>
   <div id="settings-list"></div>
   <div class="section-header" style="margin-top:8px;"></div>
   <div style="background:var(--card);border-radius:12px;overflow:hidden;">
@@ -251,15 +275,35 @@ const DEFAULT_SUPS = [
 ];
 
 let state = JSON.parse(localStorage.getItem('suptracker') || 'null') || {
-  supplements: DEFAULT_SUPS.map((n,i) => ({ id: i, name: n })),
-  logs: {}   // { "2026-06-07": { 0: true, 3: true, ... } }
+  supplements: DEFAULT_SUPS.map((n,i) => ({ id: i, name: n, time: '09:00', enabled: true })),
+  logs: {},
+  streaks: {},
+  notifEnabled: true
 };
 
-function save() { localStorage.setItem('suptracker', JSON.stringify(state)); }
+if (state.supplements && state.supplements[0] && !state.supplements[0].time) {
+  state.supplements = state.supplements.map(s => ({ ...s, time: '09:00', enabled: true }));
+  state.streaks = {};
+  state.notifEnabled = true;
+}
+
+function save() {
+  localStorage.setItem('suptracker', JSON.stringify(state));
+  updateServiceWorker();
+}
+
+function updateServiceWorker() {
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'UPDATE_STATE',
+      state: state
+    });
+  }
+}
 
 // ── DATE ──
 let currentDate = todayStr();
-let currentMonth = new Date().toISOString().slice(0,7); // "2026-06"
+let currentMonth = new Date().toISOString().slice(0,7);
 
 function todayStr() { return new Date().toISOString().slice(0,10); }
 
@@ -308,6 +352,26 @@ function showTab(name) {
   if (name === 'settings') renderSettings();
 }
 
+// ── STREAK ──
+function calculateStreak(supId) {
+  let count = 0;
+  let current = new Date(todayStr() + 'T12:00:00');
+  while (true) {
+    const dateStr = current.toISOString().slice(0,10);
+    if (!state.logs[dateStr] || !state.logs[dateStr][supId]) break;
+    count++;
+    current.setDate(current.getDate() - 1);
+  }
+  return count;
+}
+
+function getStreakEmoji(count) {
+  if (count >= 20) return '💪';
+  if (count >= 10) return '⭐';
+  if (count >= 5) return '🔥';
+  return '';
+}
+
 // ── TODAY ──
 function renderToday() {
   document.getElementById('day-label').textContent = formatDayLabel(currentDate);
@@ -327,6 +391,8 @@ function renderToday() {
   list.innerHTML = state.supplements.map((s, idx) => {
     const hasName = s.name.trim();
     const checked = log[s.id];
+    const streak = calculateStreak(s.id);
+    const emoji = getStreakEmoji(streak);
     return `<div class="sup-card">
       <button class="check-circle ${checked ? 'done' : ''}"
         onclick="${hasName ? `toggleSup(${s.id})` : ''}"
@@ -335,6 +401,10 @@ function renderToday() {
       </button>
       <div style="flex:1">
         <div class="sup-name ${!hasName ? 'empty' : ''}">${hasName ? esc(s.name) : `Suplement ${idx + 1} (nie ustawiony)`}</div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <span class="sup-time">${s.time}</span>
+          ${emoji ? `<span class="sup-streak">${emoji} ${streak}</span>` : ''}
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -356,7 +426,6 @@ function renderStats() {
   const daysInMonth = new Date(y, m, 0).getDate();
   const today = todayStr();
 
-  // days tracked in this month
   const monthDays = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -366,7 +435,6 @@ function renderStats() {
   const tracked = monthDays.filter(d => state.logs[d]).length;
   const active = state.supplements.filter(s => s.name.trim());
 
-  // total checks this month
   let totalChecks = 0;
   monthDays.forEach(d => {
     const log = state.logs[d] || {};
@@ -381,6 +449,9 @@ function renderStats() {
     <div><div class="summary-val green">${tracked}</div><div class="summary-lbl">Dni z wpisem</div></div>
     <div><div class="summary-val orange">${overallPct}%</div><div class="summary-lbl">Ogólnie</div></div>
   `;
+
+  renderTrendChart(monthDays);
+  renderHeatmap(y, m, monthDays);
 
   const statsList = document.getElementById('stats-list');
   if (!active.length || !monthDays.length) {
@@ -404,8 +475,95 @@ function renderStats() {
     </div>`).join('')}</div>`;
 }
 
+function renderTrendChart(monthDays) {
+  const canvas = document.getElementById('trendChart');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const w = canvas.offsetWidth, h = canvas.offsetHeight;
+
+  const active = state.supplements.filter(s => s.name.trim());
+  if (!active.length) return;
+
+  const data = monthDays.map(d => {
+    const log = state.logs[d] || {};
+    const count = active.filter(s => log[s.id]).length;
+    return Math.round(count / active.length * 100);
+  });
+
+  const padding = 40;
+  const chartW = w - padding * 2;
+  const chartH = h - padding * 2;
+
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg');
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, h - padding);
+  ctx.lineTo(w - padding, h - padding);
+  ctx.stroke();
+
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary');
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+
+  for (let i = 0; i < data.length; i++) {
+    const x = padding + (i / (data.length - 1)) * chartW;
+    const y = h - padding - (data[i] / 100) * chartH;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary');
+  ctx.font = '12px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('0%', padding - 20, h - padding + 5);
+  ctx.fillText('100%', padding - 20, padding + 5);
+}
+
+function renderHeatmap(y, m, monthDays) {
+  const heatmap = document.getElementById('heatmap');
+  heatmap.innerHTML = '';
+
+  const active = state.supplements.filter(s => s.name.trim());
+  if (!active.length) return;
+
+  const firstDay = new Date(y, m - 1, 1).getDay();
+
+  for (let i = 0; i < firstDay; i++) {
+    heatmap.innerHTML += '<div class="heatmap-day" style="opacity:0.1"></div>';
+  }
+
+  monthDays.forEach(dateStr => {
+    const log = state.logs[dateStr] || {};
+    const count = active.filter(s => log[s.id]).length;
+    const pct = Math.round(count / active.length * 100);
+
+    let color = getComputedStyle(document.documentElement).getPropertyValue('--border');
+    if (pct >= 75) color = getComputedStyle(document.documentElement).getPropertyValue('--green');
+    else if (pct >= 50) color = getComputedStyle(document.documentElement).getPropertyValue('--primary');
+    else if (pct > 0) color = getComputedStyle(document.documentElement).getPropertyValue('--orange');
+
+    const day = document.createElement('div');
+    day.className = 'heatmap-day';
+    day.style.background = color.trim();
+    day.title = `${dateStr}: ${pct}%`;
+    heatmap.appendChild(day);
+  });
+}
+
 // ── SETTINGS ──
 function renderSettings() {
+  const notifBtn = document.getElementById('notif-toggle');
+  if (state.notifEnabled) notifBtn.classList.remove('off');
+  else notifBtn.classList.add('off');
+
   const list = document.getElementById('settings-list');
   list.innerHTML = `<div style="background:var(--card);border-radius:12px;overflow:hidden;">` +
     state.supplements.map((s, i) => `
@@ -415,6 +573,8 @@ function renderSettings() {
           placeholder="Suplement ${i + 1}"
           onblur="updateSupName(${s.id}, this.value)"
           onkeydown="if(event.key==='Enter')this.blur()">
+        <input class="time-input" type="time" value="${s.time}"
+          onchange="updateSupTime(${s.id}, this.value)">
       </div>`).join('') + `</div>`;
 }
 
@@ -423,7 +583,30 @@ function updateSupName(id, val) {
   if (s) { s.name = val.trim(); save(); }
 }
 
+function updateSupTime(id, val) {
+  const s = state.supplements.find(x => x.id === id);
+  if (s) { s.time = val; save(); renderSettings(); }
+}
+
+function toggleNotif() {
+  state.notifEnabled = !state.notifEnabled;
+  save();
+  renderSettings();
+  if (state.notifEnabled && !('Notification' in window)) {
+    alert('Powiadomienia nie są wspierane w Twojej przeglądarce');
+  } else if (state.notifEnabled && Notification.permission !== 'granted') {
+    Notification.requestPermission();
+  }
+}
+
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator && 'Notification' in window) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    updateServiceWorker();
+  }).catch(() => {});
+}
 
 // ── INIT ──
 renderToday();
